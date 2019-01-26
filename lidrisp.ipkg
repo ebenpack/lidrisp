@@ -1,0 +1,23 @@
+package idristest
+
+sourcedir=src
+
+opts="-p contrib"
+
+modules = Async
+        , AsyncJS_IO
+        , DataTypes
+        , Environment
+        , Eval
+        , JSError
+        , Lists
+        , Numbers
+        , Parse
+        , ParseNumber
+        , ParserCombinator
+        , Primitives
+        , Ratio
+        , Repl
+        , Strings
+        , Util
+        , Vector
