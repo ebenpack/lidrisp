@@ -4,6 +4,7 @@ import Control.ST
 import Control.ST.Exception
 import DataTypes
 import Util
+import Ratio
 import Lists
 import Numbers
 import Strings
@@ -38,7 +39,7 @@ eqv : List LispVal -> ThrowsError LispVal
 eqv [(LispBool arg1), (LispBool arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispInteger arg1), (LispInteger arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispFloat arg1), (LispFloat arg2)] = pure $ LispBool $ arg1 == arg2
--- eqv [(LispRational arg1), (LispRational arg2)] = pure $ LispBool $ arg1 == arg2
+eqv [(LispRational arg1), (LispRational arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispComplex arg1), (LispComplex arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispString arg1), (LispString arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispAtom arg1), (LispAtom arg2)] = pure $ LispBool $ arg1 == arg2

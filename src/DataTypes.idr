@@ -1,7 +1,7 @@
 module DataTypes
 
 import ParserCombinator
--- import Ratio
+import Ratio
 import Data.Complex
 import Control.ST.Exception
 import Control.ST
@@ -25,7 +25,7 @@ mutual
       | LispInteger Integer
       | LispFloat Double
       | LispComplex (Complex Double)
-      -- | LispRational Rational
+      | LispRational Rational
       | LispString String
       | LispCharacter Char
       | LispBool Bool
@@ -56,7 +56,7 @@ mutual
     showVal (LispInteger contents) = show contents
     showVal (LispFloat contents) = show contents
     showVal (LispComplex c) = show c
-    showVal (LispCharacter contents) = show contents
+    showVal (LispRational (n .% d)) = show n++ "/" ++ show d
     showVal (LispBool True) = "#t"
     showVal (LispBool False) = "#f"
     showVal (LispList contents) = "(" ++ unwordsList contents ++ ")"

@@ -6,6 +6,7 @@ import DataTypes
 import Util
 import Lists
 import Numbers
+import Ratio
 import Strings
 import Vector
 import Data.Complex
@@ -16,29 +17,7 @@ import Primitives
 import Data.SortedMap
 import Environment
 import Data.IORef
--- import Data.Ratio
--- import Data.Maybe
 
-
--- import Control.Monad.Except
--- import Data.Array
--- import Data.Complex
--- import Data.IORef
--- import Data.Maybe (isNothing)
--- import Data.Ratio
--- import DataTypes
---        (Arity(..), Env, EnvFrame(..), IOPrimitiveFunc, IOThrowsError,
---         LispError(..), LispVal(..), PrimitiveFunc, ThrowsError,
---         extractValue, showVal, trapError)
--- import Parse
--- import ParserCombinators
--- import Paths_hascheme (getDataFileName)
--- import Primitives (eqv, ioPrimitives, primitives)
--- import System.Console.Haskeline
--- import System.IO
--- import Util (liftThrows)
--- import Vector (outOfBoundsError)
---
 %access public export
 --------------
 -- Eval
@@ -78,7 +57,6 @@ ensureAtoms (x::xs) = do
 
 extractVar : LispVal -> String
 extractVar (LispAtom atom) = atom
-
 
 liftThrows : Context m => ThrowsError a -> ST m a []
 liftThrows (Left err) = throw err
@@ -195,10 +173,10 @@ mutual
     eval {m} _ val@(LispCharacter _) = pure val
     eval {m} _ val@(LispInteger _) = pure val
     eval {m} _ val@(LispVector _ _) = pure val
-    -- eval {m} _ (LispRational val) =
-    --   if denominator val == 1
-    --     then pure $ LispInteger $ numerator val
-    --     else pure $ LispRational val
+    eval {m} _ (LispRational val) =
+      if denominator val == 1
+        then pure $ LispInteger $ numerator val
+        else pure $ LispRational val
     eval {m} _ val@(LispFloat _) = pure val
     eval {m} _ (LispComplex val) =
       if imagPart val == 0

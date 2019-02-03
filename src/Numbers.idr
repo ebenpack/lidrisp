@@ -4,7 +4,7 @@ import DataTypes
 import Control.ST
 import Control.ST.Exception
 import Data.Complex
--- import Ratio
+import Ratio
 import Util
 import Data.Fuel
 
@@ -12,10 +12,10 @@ import Data.Fuel
 
 numToInt : LispVal -> ThrowsError LispVal
 numToInt a@(LispInteger _) = pure a
--- numToInt (LispRational a) =
---   if denominator a == 1
---     then pure $ LispInteger (numerator a)
---     else Left $ Default "Could not convert rational to integer"
+numToInt (LispRational a) =
+  if denominator a == 1
+    then pure $ LispInteger (numerator a)
+    else Left $ Default "Could not convert rational to integer"
 numToInt (LispFloat a) =
   if a == cast (round a) -- TODO
     then pure $ LispInteger (round a)
@@ -30,30 +30,44 @@ numToInt _ = Left $ Default "Could not convert non-number to integer"
 
 numCast : List LispVal -> ThrowsError LispVal
 numCast [a@(LispInteger _), b@(LispInteger _)] = pure $ LispList [a, b]
--- numCast [a@(LispRational _), b@(LispRational _)] = pure $ LispList [a, b]
+numCast [a@(LispRational _), b@(LispRational _)] = pure $ LispList [a, b]
 numCast [a@(LispFloat _), b@(LispFloat _)] = pure $ LispList [a, b]
 numCast [a@(LispComplex _), b@(LispComplex _)] = pure $ LispList [a, b]
 -- Integer
--- numCast [(LispInteger a), b@(LispRational _)] = pure $ LispList [LispRational (a `mod` 1), b]
+numCast [(LispInteger a), b@(LispRational _)] =
+  pure $ LispList [LispRational (a .% 1), b]
 numCast [(LispInteger a), b@(LispFloat _)] = pure $ LispList [LispFloat (fromInteger a), b]
 numCast [(LispInteger a), b@(LispComplex _)] = pure $ LispList [LispComplex (fromInteger a :+ 0), b]
 -- Rational
--- numCast [a@(LispRational _), (LispInteger b)] = pure $ LispList [a, LispRational (b `mod` 1)]
--- numCast [(LispRational a), b@(LispFloat _)] = pure $ LispList [LispFloat (fromRational a), b]
--- numCast [(LispRational a), b@(LispComplex _)] = pure $ LispList [LispComplex (fromRational a :+ 0), b]
+numCast [a@(LispRational _), (LispInteger b)] =
+  pure $ LispList [a, LispRational (b .% 1)]
+numCast [(LispRational a), b@(LispFloat _)] =
+  case rationalCast a of
+    Just flt => pure $ LispList [LispFloat flt, b]
+    Nothing => Left $ Default "Unexpected error in numCast"
+numCast [(LispRational a), b@(LispComplex _)] =
+  case rationalCast a of
+    Just flt => pure $ LispList [LispComplex (flt :+ 0), b]
+    Nothing => Left $ Default "Unexpected error in numCast"
 -- Float
--- numCast [a@(LispFloat _), (LispRational b)] = pure $ LispList [a, LispFloat (fromRational b)]
+numCast [a@(LispFloat _), (LispRational b)] =
+  case rationalCast b of
+    Just flt => pure $ LispList [a, LispFloat flt]
+    Nothing => Left $ Default "Unexpected error in numCast"
 numCast [a@(LispFloat _), (LispInteger b)] = pure $ LispList [a, LispFloat (fromInteger b)]
 numCast [(LispFloat a), b@(LispComplex _)] = pure $ LispList [LispComplex (a :+ 0), b]
 -- Complex
--- numCast [a@(LispComplex _), (LispRational b)] = pure $ LispList [a, LispComplex (fromRational b :+ 0)]
+numCast [a@(LispComplex _), (LispRational b)] =
+  case rationalCast b of
+    Just flt => pure $ LispList [a, LispComplex (flt :+ 0)]
+    Nothing => Left $ Default "Unexpected error in numCast"
 numCast [a@(LispComplex _), (LispFloat b)] = pure $ LispList [a, LispComplex (b :+ 0)]
 numCast [a@(LispComplex _), (LispInteger b)] = pure $ LispList [a, LispComplex (fromInteger b :+ 0)]
 numCast [a, b] =
   case a of
     LispInteger _ => dothrow b
     LispFloat _ => dothrow b
-    -- LispRational _ => dothrow b
+    LispRational _ => dothrow b
     LispComplex _ => dothrow b
     _ => dothrow a
   where
@@ -73,12 +87,19 @@ variadicNumberOp ident op xs = helper xs ident
                d <- op c
                helper xs d
 
+rationalBinaryOpHelper : (Rational -> Rational -> Maybe Rational) -> Rational -> Rational -> String -> ThrowsError LispVal
+rationalBinaryOpHelper op a b opStr =
+  case op a b of
+    Just rat => pure $ LispRational rat
+    Nothing => Left $ Default $ "Unexpected error in " ++ opStr
+
 numAdd : List LispVal -> ThrowsError LispVal
 numAdd = variadicNumberOp (LispInteger 0) doAdd
     where
         doAdd : LispVal -> ThrowsError LispVal
         doAdd (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c + d)
-        -- doAdd (LispList [LispRational c, LispRational d]) = pure $ LispRational (c + d)
+        doAdd (LispList [LispRational c, LispRational d]) =
+          rationalBinaryOpHelper rationalAdd c d "+"
         doAdd (LispList [LispFloat c, LispFloat d]) = pure $ LispFloat (c + d)
         doAdd (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c + d)
         doAdd _ = Left $ Default "Unexpected error in +"
@@ -89,7 +110,8 @@ numSub (x::xs) = variadicNumberOp x doSub xs
   where
     doSub : LispVal -> ThrowsError LispVal
     doSub (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c - d)
-    -- doSub (LispList [LispRational c, LispRational d]) = pure $ LispRational (c - d)
+    doSub (LispList [LispRational c, LispRational d]) =
+      rationalBinaryOpHelper rationalSub c d "-"
     doSub (LispList [LispFloat c, LispFloat d]) = pure $ LispFloat (c - d)
     doSub (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c - d)
     doSub _ = Left $ Default "Unexpected error in -"
@@ -100,7 +122,8 @@ numMul xs = variadicNumberOp (LispInteger 1) doMul xs
   where
     doMul : LispVal -> ThrowsError LispVal
     doMul (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c * d)
-    -- doMul (LispList [LispRational c, LispRational d]) = pure $ LispRational (c * d)
+    doMul (LispList [LispRational c, LispRational d]) =
+      rationalBinaryOpHelper rationalMul c d "*"
     doMul (LispList [LispFloat c, LispFloat d]) = pure $ LispFloat (c * d)
     doMul (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c * d)
     doMul _ = Left $ Default "Unexpected error in *"
@@ -118,14 +141,12 @@ numDiv (x::xs) = variadicNumberOp x doDiv xs -- TODO: Zero division error
       if d == 0
         then Left $ Default "Zero division error"
         else pure $ LispComplex (c / d)
-    -- doDiv (LispList [LispInteger c, LispInteger d]) =
-    --   if d == 0
-    --     then Left $ Default "Zero division error"
-    --     else pure $ LispRational (c % d)
-    -- doDiv (LispList [LispRational c, LispRational d]) =
-    --   if d == 0
-    --     then Left $ Default "Zero division error"
-    --     else pure $ LispRational (c / d)
+    doDiv (LispList [LispInteger c, LispInteger d]) =
+      case (c :% d) of
+        Just rat => pure $ LispRational rat
+        Nothing => Left $ Default "Zero division error"
+    doDiv (LispList [LispRational c, LispRational d]) =
+      rationalBinaryOpHelper rationalDiv c d "/"
     doDiv _ = Left $ Default "Unexpected error in /"
 
 numMod : List LispVal -> ThrowsError LispVal
@@ -136,10 +157,10 @@ numMod [a, b] =
     where
     doMod : LispVal -> ThrowsError LispVal
     doMod (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c `mod` d)
-    -- doMod (LispList [c@(LispRational _), d@(LispRational _)]) = do
-    --   LispInteger c' <- numToInt c
-    --   LispInteger d' <- numToInt d
-    --   pure $ LispRational ((c' `mod` d') .% 1)
+    doMod (LispList [c@(LispRational _), d@(LispRational _)]) = do
+      LispInteger c' <- numToInt c
+      LispInteger d' <- numToInt d
+      pure $ LispRational ((c' `mod` d') .% 1)
     doMod (LispList [c@(LispFloat _), d@(LispFloat _)]) = do
       LispInteger c' <- numToInt c
       LispInteger d' <- numToInt d
@@ -159,10 +180,10 @@ numRem [a, b] =
     where
     doRem : LispVal -> ThrowsError LispVal
     doRem (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c `mod` d) -- TODO `rem`?
-    -- doRem (LispList [c@(LispRational _), d@(LispRational _)]) = do
-    --   Integer c' <- numToInt c
-    --   Integer d' <- numToInt d
-    --   pure $ LispRational ((c' `rem` d') % 1)
+    doRem (LispList [c@(LispRational _), d@(LispRational _)]) = do
+      LispInteger c' <- numToInt c
+      LispInteger d' <- numToInt d
+      pure $ LispRational ((c' `mod` d') .% 1)
     doRem (LispList [c@(LispFloat _), d@(LispFloat _)]) =
         do
             LispInteger c' <- numToInt c
@@ -182,13 +203,12 @@ isInteger [_] = pure $ LispBool False
 isInteger a = Left $ NumArgs (MinMax 1 1) (cast $ length a) a
 
 isRational : List LispVal -> ThrowsError LispVal
--- isRational [LispRational _] = pure $ LispBool True
+isRational [LispRational _] = pure $ LispBool True
 isRational a = isInteger a
 
 isReal : List LispVal -> ThrowsError LispVal
 isReal [LispFloat _] = pure $ LispBool True
-isReal a = isInteger a
--- isReal a = isRational a
+isReal a = isRational a
 
 isComplex : List LispVal -> ThrowsError LispVal
 isComplex [LispComplex _] = pure $ LispBool True
@@ -218,7 +238,7 @@ numBoolBinopEq (x::xs) = numBoolBinop "=" fn x xs
   where
     fn : LispVal -> LispVal -> ThrowsError LispVal
     fn (LispInteger c) (LispInteger d) = pure $ LispBool (c == d)
-    -- fn (LispRational c) (LispRational d) = pure $ LispBool (c == d)
+    fn (LispRational c) (LispRational d) = pure $ LispBool (c == d)
     fn (LispFloat c) (LispFloat d) = pure $ LispBool (c == d)
     fn (LispComplex c) (LispComplex d) = pure $ LispBool (c == d)
     fn _ _ = Left $ Default "Unexpected error in ="
@@ -229,7 +249,7 @@ numBoolBinopNeq (x::xs) = numBoolBinop "/=" fn x xs
   where
     fn : LispVal -> LispVal -> ThrowsError LispVal
     fn (LispInteger c) (LispInteger d) = pure $ LispBool (c /= d)
-    -- fn (LispRational c) (LispRational d) = pure $ LispBool (c /= d)
+    fn (LispRational c) (LispRational d) = pure $ LispBool (c /= d)
     fn (LispFloat c) (LispFloat d) = pure $ LispBool (c /= d)
     fn (LispComplex c) (LispComplex d) = pure $ LispBool (c /= d)
     fn _ _ = Left $ Default "Unexpected error in /="
@@ -240,7 +260,7 @@ numBoolBinopLt (x::xs) = numBoolBinop "<" fn x xs
   where
     fn : LispVal -> LispVal -> ThrowsError LispVal
     fn (LispInteger c) (LispInteger d) = pure $ LispBool (c < d)
-    -- fn (LispRational c) (LispRational d) = pure $ LispBool (c < d)
+    fn (LispRational c) (LispRational d) = pure $ LispBool (c < d)
     fn (LispFloat c) (LispFloat d) = pure $ LispBool (c < d)
     fn (LispComplex _) (LispComplex _) =
       Left $ Default "< not defined for complex numbers"
@@ -252,7 +272,7 @@ numBoolBinopLte (x::xs) = numBoolBinop "<=" fn x xs
   where
     fn : LispVal -> LispVal -> ThrowsError LispVal
     fn (LispInteger c) (LispInteger d) = pure $ LispBool (c <= d)
-    -- fn (LispRational c) (LispRational d) = pure $ LispBool (c <= d)
+    fn (LispRational c) (LispRational d) = pure $ LispBool (c <= d)
     fn (LispFloat c) (LispFloat d) = pure $ LispBool (c <= d)
     fn (LispComplex _) (LispComplex _) =
       Left $ Default "<= not defined for complex numbers"
@@ -265,7 +285,7 @@ numBoolBinopGt
   where
     fn : LispVal -> LispVal -> ThrowsError LispVal
     fn (LispInteger c) (LispInteger d) = pure $ LispBool (c > d)
-    -- fn (LispRational c) (LispRational d) = pure $ LispBool (c > d)
+    fn (LispRational c) (LispRational d) = pure $ LispBool (c > d)
     fn (LispFloat c) (LispFloat d) = pure $ LispBool (c > d)
     fn (LispComplex _) (LispComplex _) =
       Left $ Default "> not defined for complex numbers"
@@ -277,7 +297,7 @@ numBoolBinopGte (x::xs) = numBoolBinop ">=" fn x xs
   where
     fn : LispVal -> LispVal -> ThrowsError LispVal
     fn (LispInteger c) (LispInteger d) = pure $ LispBool (c >= d)
-    -- fn (LispRational c) (LispRational d) = pure $ LispBool (c >= d)
+    fn (LispRational c) (LispRational d) = pure $ LispBool (c >= d)
     fn (LispFloat c) (LispFloat d) = pure $ LispBool (c >= d)
     fn (LispComplex _) (LispComplex _) =
       Left $ Default ">= not defined for complex numbers"
@@ -299,7 +319,10 @@ unaryTrig op complexOp args =
     then Left $ NumArgs (MinMax 1 1) (cast $ length args) args
     else case args of
            [LispInteger a] => pure $ LispFloat (op $ fromInteger a)
-           -- [LispRational a] => pure $ LispFloat (op $ fromRational a)
+           [LispRational a] =>
+              case rationalCast a of
+                Just flt => pure $ LispFloat (op flt)
+                Nothing => Left $ Default "Unexpected error" -- TODO: Better error
            [LispFloat a] => pure $ LispFloat (op a)
            [LispComplex a] => pure $ LispComplex $ complexOp (realPart a) (imagPart a)
            _ => Left $ Default "Numerical input expected"

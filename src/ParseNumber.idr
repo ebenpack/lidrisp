@@ -204,7 +204,10 @@ parseRationalHelper p =
         num <- map toInt p
         _ <- char '/'
         denom <- map toInt p
-        pure $ LispInteger num -- LispRational (num .% denom) TODO!!!
+        let ratio = (num :% denom)
+        case ratio of
+          Just rat => pure $ LispRational rat
+          Nothing => failure "Division by zero"
     where
         toInt : LispVal -> Integer
         toInt (LispInteger x) = x
@@ -246,12 +249,14 @@ parseComplexHelper pn pf pr =
         real <- map toDouble (pr <|> pf <|> pn)
         imaginary <- map toDouble (pr <|> pf <|> pn)
         _ <- char 'i'
-        pure $ LispComplex (real :+ imaginary)
+        case (real, imaginary) of
+          (Just r, Just i) => pure $ LispComplex (r :+ i)
+          (_, _) => failure "Division by zero"
     where
-        toDouble : LispVal -> Double
-        toDouble (LispFloat x) = x
-        toDouble (LispInteger x) = cast x
-        -- toDouble (LispRational x) = cast x
+        toDouble : LispVal -> Maybe Double
+        toDouble (LispFloat x) = Just x
+        toDouble (LispInteger x) = Just $ cast x
+        toDouble (LispRational x) = rationalCast x
 
 parseComplexDecimal : Parser LispVal
 parseComplexDecimal =
@@ -286,4 +291,4 @@ parseComplex =
     parseComplexBase base
 
 parseNumber : Parser LispVal
-parseNumber = parseComplex {- <|> parseRational -} <|> parseFloat <|> parseInteger
+parseNumber = parseComplex <|> parseRational <|> parseFloat <|> parseInteger
