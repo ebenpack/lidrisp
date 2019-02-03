@@ -1,4 +1,3 @@
-
 module Async
 
 public export
