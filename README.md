@@ -12,4 +12,5 @@ let/let*/letrec expressions, a slightly more sophisticated environment model,
 etc.
 
     # Build
+    > idris --build lidrisp.ipkg
     > idris -p contrib -i src --codegen javascript Main.idr -o bundle.js
