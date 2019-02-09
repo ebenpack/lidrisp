@@ -10,6 +10,21 @@ import Util
 symbol : Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 
+matchBracket : Char -> Parser Char
+matchBracket open =
+    case open of 
+        '(' => char ')'
+        '[' => char ']'
+        '{' => char '}'
+
+bracketed : Parser a -> Parser a
+bracketed p = do
+    open <- char '(' <|> char '[' <|> char '{'
+    v <- p
+    matchBracket open
+    pure v
+
+
 --------------
 -- String
 --------------
@@ -105,11 +120,7 @@ mutual
     parseVector : Parser LispVal
     parseVector = do
         _ <- char '#'
-        open <- char '(' <|> char '['
-        rawList <- parseRawList
-        _ <- if open == '('
-                then char ')'
-                else char ']'
+        rawList <- bracketed parseRawList
         let len = toIntNat $ length rawList
         pure $ LispVector len rawList
 
@@ -159,13 +170,7 @@ mutual
         pure $ LispList rawList
 
     parseLists : Parser LispVal
-    parseLists = do
-        open <- char '(' <|> char '['
-        x <- parseDottedList <|> parseList
-        _ <- if open == '('
-             then char ')'
-             else char ']'
-        pure x
+    parseLists = bracketed (parseDottedList <|> parseList)
 
     parseDottedList : Parser LispVal
     parseDottedList = do
