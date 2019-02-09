@@ -185,9 +185,8 @@ mutual
     eval {m} _ val@(LispBool _) = pure val
     eval {m} _ (LispList [LispAtom "quote", val]) = pure val
     eval {m} envRef (LispList [LispAtom "if", pred', conseq, alt]) =
-        do
-            result <- eval envRef pred'
-            case result of
+        do result <- eval envRef pred'
+           case result of
                 LispBool False => eval envRef alt
                 _ => eval envRef conseq
     eval {m} envRef (LispList ((LispAtom "cond")::xs)) = evalCond xs
@@ -208,29 +207,29 @@ mutual
                 [] => pure result
                 _ => evalList envRef conseqs
         evalCond a = throw $ Default (show a)
-    eval {m} envRef (LispList ((LispAtom "case")::(key::clauses))) =
-        do
-            result <- eval envRef key
-            evalClauses result clauses
+    eval {m} envRef (LispList ((LispAtom "case")::key::clauses)) =
+        do result <- eval envRef key
+           evalClauses result clauses
         where
-            inList : List LispVal -> ST m LispVal []
-            inList [_, LispList []] = pure $ LispBool False
+            inList : List LispVal -> ST m Bool []
+            inList [_, LispList []] = pure False
+            inList [_, (LispAtom "else")] = pure True
+            inList [_, LispList (LispAtom "else"::_)] = throw $ Default "case: bad syntax (`else` clause must be last)"
             inList [key', LispList (x::xs)] =
-                do
-                    eq <- liftThrows $ eqv [x, key']
-                    case eq of
-                        LispBool True => pure $ LispBool True
-                        _ => inList [key, LispList xs]
-            inList _ = throw $ Default "case: bad syntax"
+                do eq <- liftThrows $ eqv [x, key']
+                   case eq of
+                        LispBool True => pure True
+                        _ => inList [key', LispList xs]
+            inList a = throw $ Default $ "case: bad syntax"
             evalClauses : LispVal -> List LispVal -> ST m LispVal []
+            evalClauses _ [] = pure LispVoid
             evalClauses _ [LispList []] = pure LispVoid
             evalClauses key' (LispList (datum::exprs)::rest) =
                 do
                     match <- call $ inList [key', datum]
                     case match of
-                        LispBool True => evalList envRef exprs
-                        LispBool False => evalClauses key' rest
-                        _ => throw $ Default "case: bad syntax"
+                        True => evalList envRef exprs
+                        False => evalClauses key' rest
             evalClauses _ _ = throw $ Default "case: bad syntax"
     eval {m} _ (LispList ((LispAtom "case")::_)) =
       throw $ Default "case: bad syntax in: (case)"
