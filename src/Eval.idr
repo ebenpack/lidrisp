@@ -266,8 +266,9 @@ mutual
             LispList atoms <- getHeads pairs
             ensureAtoms atoms
             LispList vals <- getTails pairs
-            buildEnv envRef atoms vals
-            evalList envRef body
+            envRef' <- bindVars envRef []
+            buildEnv envRef' atoms vals
+            evalList envRef' body
         where
         buildEnv : EnvRef LispVal -> List LispVal -> List LispVal -> ST m () []
         buildEnv env [] [] = pure ()
