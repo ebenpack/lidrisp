@@ -81,7 +81,6 @@ variadicNumberOp ident op xs = helper xs ident
     where
         helper : List LispVal -> LispVal -> ThrowsError LispVal
         helper [] acc = pure acc
-        helper [x] acc = op $ LispList [acc, x]
         helper (x::xs) acc =
             do c <- numCast [acc, x]
                d <- op c
@@ -104,17 +103,18 @@ numAdd = variadicNumberOp (LispInteger 0) doAdd
         doAdd (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c + d)
         doAdd _ = Left $ Default "Unexpected error in +"
 
+doSub : LispVal -> ThrowsError LispVal
+doSub (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c - d)
+doSub (LispList [LispRational c, LispRational d]) =
+  rationalBinaryOpHelper rationalSub c d "-"
+doSub (LispList [LispFloat c, LispFloat d]) = pure $ LispFloat (c - d)
+doSub (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c - d)
+doSub _ = Left $ Default "Unexpected error in -"
+
 numSub : List LispVal -> ThrowsError LispVal
 numSub [] = Left $ NumArgs (Min 1) 0 []
+numSub [x] = variadicNumberOp (LispInteger 0) doSub [x]
 numSub (x::xs) = variadicNumberOp x doSub xs
-  where
-    doSub : LispVal -> ThrowsError LispVal
-    doSub (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c - d)
-    doSub (LispList [LispRational c, LispRational d]) =
-      rationalBinaryOpHelper rationalSub c d "-"
-    doSub (LispList [LispFloat c, LispFloat d]) = pure $ LispFloat (c - d)
-    doSub (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c - d)
-    doSub _ = Left $ Default "Unexpected error in -"
 
 numMul : List LispVal -> ThrowsError LispVal
 numMul [] = pure $ LispInteger 1
@@ -155,20 +155,24 @@ numMod [a, b] =
         c <- numCast $ [a, b]
         doMod c
     where
+    modHelper : Integer -> Integer -> Integer
+    modHelper n d = 
+      let k = cast (floor ((cast n) / (cast d)))
+      in n - k * d
     doMod : LispVal -> ThrowsError LispVal
-    doMod (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (c `mod` d)
+    doMod (LispList [LispInteger c, LispInteger d]) = pure $ LispInteger (modHelper c d)
     doMod (LispList [c@(LispRational _), d@(LispRational _)]) = do
       LispInteger c' <- numToInt c
       LispInteger d' <- numToInt d
-      pure $ LispRational ((c' `mod` d') .% 1)
+      pure $ LispRational ((modHelper c' d') .% 1)
     doMod (LispList [c@(LispFloat _), d@(LispFloat _)]) = do
       LispInteger c' <- numToInt c
       LispInteger d' <- numToInt d
-      pure $ LispFloat (fromInteger (c' `mod` d'))
+      pure $ LispFloat (fromInteger (modHelper c' d'))
     doMod (LispList [c@(LispComplex _), d@(LispComplex _)]) = do
       LispInteger c' <- numToInt c
       LispInteger d' <- numToInt d
-      pure $ LispComplex (fromInteger (c' `mod` d') :+ 0)
+      pure $ LispComplex (fromInteger (modHelper c' d') :+ 0)
     doMod _ = Left $ Default "Unexpected error in modulo"
 numMod a = Left $ NumArgs (MinMax 2 2) (cast $ length a) a
 
