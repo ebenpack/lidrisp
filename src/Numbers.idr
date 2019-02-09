@@ -156,7 +156,7 @@ numMod [a, b] =
         doMod c
     where
     modHelper : Integer -> Integer -> Integer
-    modHelper n d = 
+    modHelper n d =
       let k = cast (floor ((cast n) / (cast d)))
       in n - k * d
     doMod : LispVal -> ThrowsError LispVal
