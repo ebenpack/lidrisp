@@ -6,6 +6,7 @@ opts="-p contrib"
 
 modules = Async
         , AsyncJS_IO
+        , Bools
         , DataTypes
         , Environment
         , Eval
