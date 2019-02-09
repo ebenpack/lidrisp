@@ -113,4 +113,5 @@ primitives =
   , ("eq?", eqv)
   , ("eqv?", eqv)
   , ("equal?", eqv)
+  , ("void", (\_ => pure LispVoid))
   ]
