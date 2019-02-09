@@ -22,7 +22,7 @@ interface Envir a (m: Type -> Type) | m where
     initEnv   : List (String, a)             -> ST m (EnvRef a) []
     getVar    : EnvRef a -> String           -> ST m (Maybe a) []
     setVar    : EnvRef a -> String -> a      -> ST m Bool []
-    defineVar : EnvRef a -> String -> a      -> ST m () []
+    defineVar  : EnvRef a -> String -> a      -> ST m () []
     bindVars  : EnvRef a -> List (String, a) -> ST m (EnvRef a) []
 
 addBinding : HasReference ffi => (String, a) -> IO' ffi (String, IORef a)
