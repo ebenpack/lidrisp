@@ -237,6 +237,16 @@ mutual
         do val <- eval envRef form
            setVar envRef var val
            pure LispVoid
+    eval {m} envRef (LispList [LispAtom "set-car!", LispAtom var, form]) =
+        do newVal <- eval envRef form
+           ls <- getVar envRef var
+           setCar envRef ls newVal
+           pure LispVoid
+        where
+            setCar : EnvRef LispVal -> Maybe LispVal -> LispVal -> ST m Bool []
+            setCar envRef (Just (LispList (x::xs))) newVal = setVar envRef var (LispList (newVal::xs))
+            setCar envRef (Just (LispDottedList (x::xs) v)) newVal = setVar envRef var (LispDottedList (newVal::xs) v)
+            setCar _ _ _ = throw $ TypeMismatch "list" form
     eval {m} envRef (LispList [LispAtom "define", LispAtom var, form]) =
         do val <- eval envRef form
            defineVar envRef var val
