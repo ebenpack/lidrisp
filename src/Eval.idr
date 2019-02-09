@@ -297,16 +297,6 @@ mutual
             setRec env ((n,v)::xs) = do
                 setVar env n v
                 setRec env xs
-    eval {m} envRef (LispList [LispAtom "or", expr1, expr2]) = do
-        result <- eval envRef expr1
-        case result of
-            LispBool True => pure result
-            _ => eval envRef expr2
-    eval {m} envRef (LispList [LispAtom "and", expr1, expr2]) = do
-        result <- eval envRef expr1
-        case result of
-            LispBool False => pure result
-            _ => eval envRef expr2
     eval {m} envRef (LispList [LispAtom "print", expr1]) = do
         -- TODO: REMOVE
         result <- eval envRef expr1

@@ -28,7 +28,7 @@ numToInt (LispComplex a) =
 numToInt _ = Left $ Default "Could not convert non-number to integer"
 
 
-numCast : List LispVal -> ThrowsError LispVal
+numCast : PrimitiveLispFunc
 numCast [a@(LispInteger _), b@(LispInteger _)] = pure $ LispList [a, b]
 numCast [a@(LispRational _), b@(LispRational _)] = pure $ LispList [a, b]
 numCast [a@(LispFloat _), b@(LispFloat _)] = pure $ LispList [a, b]
@@ -76,7 +76,7 @@ numCast [a, b] =
 numCast _ = Left $ Default "Unexpected error in numCast"
 
 
-variadicNumberOp : LispVal -> (LispVal -> ThrowsError LispVal) -> List LispVal -> ThrowsError LispVal
+variadicNumberOp : LispVal -> (LispVal -> ThrowsError LispVal) -> PrimitiveLispFunc
 variadicNumberOp ident op xs = helper xs ident
     where
         helper : List LispVal -> LispVal -> ThrowsError LispVal
@@ -92,7 +92,7 @@ rationalBinaryOpHelper op a b opStr =
     Just rat => pure $ LispRational rat
     Nothing => Left $ Default $ "Unexpected error in " ++ opStr
 
-numAdd : List LispVal -> ThrowsError LispVal
+numAdd : PrimitiveLispFunc
 numAdd = variadicNumberOp (LispInteger 0) doAdd
     where
         doAdd : LispVal -> ThrowsError LispVal
@@ -111,12 +111,12 @@ doSub (LispList [LispFloat c, LispFloat d]) = pure $ LispFloat (c - d)
 doSub (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c - d)
 doSub _ = Left $ Default "Unexpected error in -"
 
-numSub : List LispVal -> ThrowsError LispVal
+numSub : PrimitiveLispFunc
 numSub [] = Left $ NumArgs (Min 1) 0 []
 numSub [x] = variadicNumberOp (LispInteger 0) doSub [x]
 numSub (x::xs) = variadicNumberOp x doSub xs
 
-numMul : List LispVal -> ThrowsError LispVal
+numMul : PrimitiveLispFunc
 numMul [] = pure $ LispInteger 1
 numMul xs = variadicNumberOp (LispInteger 1) doMul xs
   where
@@ -128,7 +128,7 @@ numMul xs = variadicNumberOp (LispInteger 1) doMul xs
     doMul (LispList [LispComplex c, LispComplex d]) = pure $ LispComplex (c * d)
     doMul _ = Left $ Default "Unexpected error in *"
 
-numDiv : List LispVal -> ThrowsError LispVal
+numDiv : PrimitiveLispFunc
 numDiv [] = Left $ NumArgs (Min 1) 0 []
 numDiv (x::xs) = variadicNumberOp x doDiv xs -- TODO: Zero division error
   where
@@ -149,7 +149,7 @@ numDiv (x::xs) = variadicNumberOp x doDiv xs -- TODO: Zero division error
       rationalBinaryOpHelper rationalDiv c d "/"
     doDiv _ = Left $ Default "Unexpected error in /"
 
-numMod : List LispVal -> ThrowsError LispVal
+numMod : PrimitiveLispFunc
 numMod [a, b] =
     do
         c <- numCast $ [a, b]
@@ -176,7 +176,7 @@ numMod [a, b] =
     doMod _ = Left $ Default "Unexpected error in modulo"
 numMod a = Left $ NumArgs (MinMax 2 2) (cast $ length a) a
 
-numRem : List LispVal -> ThrowsError LispVal
+numRem : PrimitiveLispFunc
 numRem [a, b] =
     do
         c <- numCast $ [a, b]
@@ -201,24 +201,24 @@ numRem [a, b] =
     doRem _ = Left $ Default "Unexpected error in remainder"
 numRem a = Left $ NumArgs (MinMax 2 2) (cast $ length a) a
 
-isInteger : List LispVal -> ThrowsError LispVal
+isInteger : PrimitiveLispFunc
 isInteger [LispInteger _] = pure $ LispBool True
 isInteger [_] = pure $ LispBool False
 isInteger a = Left $ NumArgs (MinMax 1 1) (cast $ length a) a
 
-isRational : List LispVal -> ThrowsError LispVal
+isRational : PrimitiveLispFunc
 isRational [LispRational _] = pure $ LispBool True
 isRational a = isInteger a
 
-isReal : List LispVal -> ThrowsError LispVal
+isReal : PrimitiveLispFunc
 isReal [LispFloat _] = pure $ LispBool True
 isReal a = isRational a
 
-isComplex : List LispVal -> ThrowsError LispVal
+isComplex : PrimitiveLispFunc
 isComplex [LispComplex _] = pure $ LispBool True
 isComplex a = isReal a
 
-isNumber : List LispVal -> ThrowsError LispVal
+isNumber : PrimitiveLispFunc
 isNumber = isComplex
 
 numBoolBinop :
@@ -236,7 +236,7 @@ numBoolBinop name' op b (c::d) = do
     _ => Left $ Default $ "Unexpected error in " ++ name'
 numBoolBinop _ _ _ _ = pure $ LispBool True
 
-numBoolBinopEq : List LispVal -> ThrowsError LispVal
+numBoolBinopEq : PrimitiveLispFunc
 numBoolBinopEq [] = Left $ NumArgs (Min 1) 0 []
 numBoolBinopEq (x::xs) = numBoolBinop "=" fn x xs
   where
@@ -247,7 +247,7 @@ numBoolBinopEq (x::xs) = numBoolBinop "=" fn x xs
     fn (LispComplex c) (LispComplex d) = pure $ LispBool (c == d)
     fn _ _ = Left $ Default "Unexpected error in ="
 
-numBoolBinopNeq : List LispVal -> ThrowsError LispVal
+numBoolBinopNeq : PrimitiveLispFunc
 numBoolBinopNeq [] = Left $ NumArgs (Min 1) 0 []
 numBoolBinopNeq (x::xs) = numBoolBinop "/=" fn x xs
   where
@@ -258,7 +258,7 @@ numBoolBinopNeq (x::xs) = numBoolBinop "/=" fn x xs
     fn (LispComplex c) (LispComplex d) = pure $ LispBool (c /= d)
     fn _ _ = Left $ Default "Unexpected error in /="
 
-numBoolBinopLt : List LispVal -> ThrowsError LispVal
+numBoolBinopLt : PrimitiveLispFunc
 numBoolBinopLt [] = Left $ NumArgs (Min 1) 0 []
 numBoolBinopLt (x::xs) = numBoolBinop "<" fn x xs
   where
@@ -270,7 +270,7 @@ numBoolBinopLt (x::xs) = numBoolBinop "<" fn x xs
       Left $ Default "< not defined for complex numbers"
     fn _ _ = Left $ Default "Unexpected error in <"
 
-numBoolBinopLte : List LispVal -> ThrowsError LispVal
+numBoolBinopLte : PrimitiveLispFunc
 numBoolBinopLte [] = Left $ NumArgs (Min 1) 0 []
 numBoolBinopLte (x::xs) = numBoolBinop "<=" fn x xs
   where
@@ -282,7 +282,7 @@ numBoolBinopLte (x::xs) = numBoolBinop "<=" fn x xs
       Left $ Default "<= not defined for complex numbers"
     fn _ _ = Left $ Default "Unexpected error in <="
 
-numBoolBinopGt : List LispVal -> ThrowsError LispVal
+numBoolBinopGt : PrimitiveLispFunc
 numBoolBinopGt [] = Left $ NumArgs (Min 1) 0 []
 numBoolBinopGt
  (x::xs) = numBoolBinop ">" fn x xs
@@ -295,7 +295,7 @@ numBoolBinopGt
       Left $ Default "> not defined for complex numbers"
     fn _ _ = Left $ Default "Unexpected error in >"
 
-numBoolBinopGte : List LispVal -> ThrowsError LispVal
+numBoolBinopGte : PrimitiveLispFunc
 numBoolBinopGte [] = Left $ NumArgs (Min 1) 0 []
 numBoolBinopGte (x::xs) = numBoolBinop ">=" fn x xs
   where
@@ -307,7 +307,7 @@ numBoolBinopGte (x::xs) = numBoolBinop ">=" fn x xs
       Left $ Default ">= not defined for complex numbers"
     fn _ _ = Left $ Default "Unexpected error in >="
 
-numQuotient : List LispVal -> ThrowsError LispVal
+numQuotient : PrimitiveLispFunc
 numQuotient args =
   if length args /= 2
     then Left $ NumArgs (MinMax 2 2) (cast $ length args) args
@@ -317,7 +317,7 @@ numQuotient args =
         LispList [LispInteger a, LispInteger b] => pure $ LispInteger (a `div` b) -- TODO: Should be `quot`
         _ => Left $ Default "Unexpected error in <=" -- TODO better errors
 
-unaryTrig : (Double -> Double) -> (Double -> Double -> Complex Double) -> List LispVal -> ThrowsError LispVal
+unaryTrig : (Double -> Double) -> (Double -> Double -> Complex Double) -> PrimitiveLispFunc
 unaryTrig op complexOp args =
   if length args /= 1
     then Left $ NumArgs (MinMax 1 1) (cast $ length args) args
@@ -331,21 +331,29 @@ unaryTrig op complexOp args =
            [LispComplex a] => pure $ LispComplex $ complexOp (realPart a) (imagPart a)
            _ => Left $ Default "Numerical input expected"
 
-numSine : List LispVal -> ThrowsError LispVal
+numSine : PrimitiveLispFunc
 numSine = unaryTrig sin (\r, i => ((sin r) * (cosh i)) :+ ((cos r) * (sinh i)))
 
-numCos : List LispVal -> ThrowsError LispVal
+numCos : PrimitiveLispFunc
 numCos =
   unaryTrig cos (\r, i => ((cos r) * (cosh i)) :+ (-1 * ((sin r) * (sinh i))))
 
-numPrimitives : List (String, List LispVal -> ThrowsError LispVal)
+numToString : PrimitiveLispFunc
+numToString [n] =
+  do num <- isNumber [n]
+     case num of
+        LispBool True => pure $ LispString $ show n
+        LispBool False => Left $ TypeMismatch "number?" n
+        _ => Left $ Default "Unexpected error"
+
+numPrimitives : List (String, PrimitiveLispFunc)
 numPrimitives =
     [ ("+", numAdd)
     , ("-", numSub)
     , ("*", numMul)
     , ("/", numDiv)
     , ("modulo", numMod)
-    , ("Integer?", isNumber)
+    , ("number?", isNumber)
     , ("complex?", isComplex)
     , ("real?", isReal)
     , ("rational?", isRational)
@@ -360,4 +368,5 @@ numPrimitives =
     , ("remainder", numRem)
     , ("sin", numSine)
     , ("cos", numCos)
+    , ("number->string", numToString)
     ]

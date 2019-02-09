@@ -14,6 +14,9 @@ data Arity =
   | MinMax Int Int
 
 mutual
+    PrimitiveLispFunc : Type
+    PrimitiveLispFunc = List LispVal -> ThrowsError LispVal
+
     ThrowsError : Type -> Type
     ThrowsError = Either LispError
 
@@ -29,7 +32,7 @@ mutual
       | LispString String
       | LispCharacter Char
       | LispBool Bool
-      | LispPrimitiveFunc String (List LispVal -> ThrowsError LispVal)
+      | LispPrimitiveFunc String PrimitiveLispFunc
       | LispFunc String (List String) (Maybe String) (List LispVal) (EnvRef LispVal)
       | LispVoid
 
@@ -60,7 +63,7 @@ mutual
     (LispCharacter a) == (LispCharacter b) = a == b
     (LispBool a) == (LispBool b) = a == b
     LispVoid == LispVoid = True
-    -- LispPrimitiveFunc String (List LispVal -> ThrowsError LispVal)
+    -- LispPrimitiveFunc String PrimitiveLispFunc
     -- LispFunc String (List String) (Maybe String) (List LispVal) (EnvRef LispVal)
     x == y = False
 

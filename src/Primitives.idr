@@ -8,6 +8,7 @@ import Ratio
 import Lists
 import Numbers
 import Strings
+import Bools
 import Vector
 import Data.Complex
 
@@ -16,26 +17,16 @@ import Data.Complex
 --------------
 -- Primitives
 --------------
-unpackBool : LispVal -> ThrowsError (Lazy Bool)
-unpackBool (LispBool b) = pure b
-unpackBool notBool = Left $ TypeMismatch "boolean" notBool
 
-boolBoolBinop : (Lazy Bool -> Lazy Bool -> Bool) -> List LispVal -> ThrowsError LispVal
-boolBoolBinop = boolBinop unpackBool
-
-isBoolean : List LispVal -> ThrowsError LispVal
-isBoolean [LispBool _] = pure $ LispBool True
-isBoolean _ = pure $ LispBool False
-
-isSymbol : List LispVal -> ThrowsError LispVal
+isSymbol : PrimitiveLispFunc
 isSymbol [LispAtom _] = pure $ LispBool True
 isSymbol _ = pure $ LispBool False
 
-isChar : List LispVal -> ThrowsError LispVal
+isChar : PrimitiveLispFunc
 isChar [LispCharacter _] = pure $ LispBool False
 isChar _ = pure $ LispBool False
 
-eqv : List LispVal -> ThrowsError LispVal
+eqv : PrimitiveLispFunc
 eqv [(LispBool arg1), (LispBool arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispInteger arg1), (LispInteger arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispFloat arg1), (LispFloat arg2)] = pure $ LispBool $ arg1 == arg2
@@ -99,17 +90,15 @@ eqv badArgList = Left $ NumArgs (MinMax 2 2) (cast $ length badArgList) badArgLi
 --   , ("read-contents", readContents)
 --   ]
 
-primitives : List (String, (List LispVal -> ThrowsError LispVal))
+primitives : List (String, PrimitiveLispFunc)
 primitives =
   vectorPrimitives ++
   listPrimitives ++
   numPrimitives ++
   strPrimitives ++
-  [ ("boolean?", isBoolean)
-  , ("symbol?", isSymbol)
+  boolPrimitives ++
+  [ ("symbol?", isSymbol)
   , ("char?", isChar)
-  , ("&&", boolBoolBinop (~&&))
-  , ("||", boolBoolBinop (~||))
   , ("eq?", eqv)
   , ("eqv?", eqv)
   , ("equal?", eqv)
