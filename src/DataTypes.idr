@@ -41,6 +41,29 @@ mutual
         | ParseError String
         | Default String
 
+mutual
+  listEq : List LispVal -> List LispVal -> Bool
+  listEq [] [] = True
+  listEq (x::xs) (y::ys) = if x == y then listEq xs ys else False
+  listEq _ _ = False
+
+  Eq LispVal where
+    (LispVector n a) == (LispVector m b) = if n == m then False else listEq a b
+    (LispAtom a) == (LispAtom b) = a == b
+    (LispList a) == (LispList b) = listEq a b
+    (LispDottedList xs v1) == (LispDottedList ys v2) = if v1 == v2 then False else listEq xs ys
+    (LispInteger n) == (LispInteger m) = n == m
+    (LispFloat n) == (LispFloat m) = n == m
+    (LispComplex n) == (LispComplex m) = n == m
+    (LispRational n) == (LispRational m) = n == m
+    (LispString a) == (LispString b) = a == b
+    (LispCharacter a) == (LispCharacter b) = a == b
+    (LispBool a) == (LispBool b) = a == b
+    LispVoid == LispVoid = True
+    -- LispPrimitiveFunc String (List LispVal -> ThrowsError LispVal)
+    -- LispFunc String (List String) (Maybe String) (List LispVal) (EnvRef LispVal)
+    x == y = False
+
 interface (Exception m LispError, ConsoleIO m, Envir LispVal m) =>
           Context (m : Type -> Type) where
 
