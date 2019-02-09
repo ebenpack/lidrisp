@@ -77,24 +77,24 @@ mutual
 
 skipMany : Parser a -> Parser ()
 skipMany p = do
-  _ <- many' p
+  many' p
   pure ()
 
 skipMany1 : Parser a -> Parser ()
 skipMany1 p = do
-  _ <- many1 p
+  many1 p
   pure ()
 
 skipUntil : Parser t -> Parser a -> Parser ()
 skipUntil end p = scan
   where
     scan =
-      do _ <- end
+      do end
          pure ()
-     <|> do
-        _ <- p
-        scan
-        pure ()
+     <|> 
+      do p
+         scan
+         pure ()
 
 try : Parser a -> Parser a
 try p =
@@ -141,7 +141,7 @@ endBy : Parser a -> Parser b -> Parser (List a)
 endBy p sep =
   many' $ do
     x <- p
-    _ <- sep
+    sep
     pure x
 
 digit : Parser Char
@@ -177,6 +177,6 @@ spaces = skipMany1 space
 string : String -> Parser String
 string "" = pure ""
 string s = do
-  _ <- char (strHead s)
-  _ <- string (strTail s)
+  char (strHead s)
+  string (strTail s)
   pure s

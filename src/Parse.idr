@@ -30,18 +30,16 @@ bracketed p = do
 --------------
 parseString : Parser LispVal
 parseString =
-    do
-        _ <- char '"'
-        x <- many' (escapedChar <|> noneOf "\"\\")
-        _ <- char '"'
-        pure $ LispString (pack x)
+    do char '"'
+       x <- many' (escapedChar <|> noneOf "\"\\")
+       char '"'
+       pure $ LispString (pack x)
     where
         escapedChar : Parser Char
         escapedChar =
-            do
-                _ <- char '\\'
-                x <- oneOf "\\\"nrt"
-                pure $ case x of
+            do char '\\'
+               x <- oneOf "\\\"nrt"
+               pure $ case x of
                     '\\' => x
                     '"' => x
                     'n' => '\n'
@@ -68,24 +66,23 @@ parseAtom = do
 parseCharacter : Parser LispVal
 parseCharacter
      -- TODO: Meta-, bucky-bit stuff
- = do
-  _ <- string "#\\"
-  c <- many1 letter
-  let s = pack (map Prelude.Chars.toLower c)
-  pure $
-    if length s == 1 then LispCharacter $ strHead s else
-    case s of
-      "newline" => LispCharacter '\n'
-      "space" => LispCharacter ' '
-      "altmode" => LispCharacter $ chr 27
-      "backnext" => LispCharacter $ chr 31
-      "backspace" => LispCharacter $ chr 8
-      "call" => LispCharacter $ chr 26
-      "linefeed" => LispCharacter $ chr 10
-      "page" => LispCharacter $ chr 12
-      "return" => LispCharacter $ chr 13
-      "rubout" => LispCharacter $ chr 127
-      "tab" => LispCharacter $ chr 9
+ = do string "#\\"
+      c <- many1 letter
+      let s = pack (map Prelude.Chars.toLower c)
+      pure $
+        if length s == 1 then LispCharacter $ strHead s else
+        case s of
+          "newline" => LispCharacter '\n'
+          "space" => LispCharacter ' '
+          "altmode" => LispCharacter $ chr 27
+          "backnext" => LispCharacter $ chr 31
+          "backspace" => LispCharacter $ chr 8
+          "call" => LispCharacter $ chr 26
+          "linefeed" => LispCharacter $ chr 10
+          "page" => LispCharacter $ chr 12
+          "return" => LispCharacter $ chr 13
+          "rubout" => LispCharacter $ chr 127
+          "tab" => LispCharacter $ chr 9
 
 --
 
@@ -93,22 +90,21 @@ parseCharacter
 -- Comment
 --------------
 parseLineComment : Parser LispVal
-parseLineComment = do
-  _ <- char ';'
-  _ <- skipUntil (char '\n') item
-  pure LispVoid -- TODO: This seems wrong
+parseLineComment = 
+    do char ';'
+       skipUntil (char '\n') item
+       pure LispVoid -- TODO: This seems wrong
 
 parseBlockComment : Parser LispVal
 parseBlockComment =
-    do
-        _ <- string "#|"
-        _ <- skipUntil (string "|#") (parseBlockComment <|> takeAnything)
-        pure LispVoid
+    do string "#|"
+       skipUntil (string "|#") (parseBlockComment <|> takeAnything)
+       pure LispVoid
   where
       takeAnything : Parser LispVal
-      takeAnything = do
-          _ <- item
-          pure LispVoid
+      takeAnything = 
+        do item
+           pure LispVoid
 
 parseComment : Parser LispVal
 parseComment = parseLineComment <|> parseBlockComment -- TODO: Fix
@@ -118,51 +114,51 @@ mutual
     -- Vector
     --------------
     parseVector : Parser LispVal
-    parseVector = do
-        _ <- char '#'
-        rawList <- bracketed parseRawList
-        let len = toIntNat $ length rawList
-        pure $ LispVector len rawList
+    parseVector = 
+        do char '#'
+           rawList <- bracketed parseRawList
+           let len = toIntNat $ length rawList
+           pure $ LispVector len rawList
 
     --------------
     -- Quoted
     --------------
     parseQuoted : Parser LispVal
-    parseQuoted = do
-      _ <- char '\''
-      x <- parseExpr
-      pure $ LispList [LispAtom "quote", x]
+    parseQuoted = 
+        do char '\''
+           x <- parseExpr
+           pure $ LispList [LispAtom "quote", x]
 
     --------------
     -- Backquote
     --------------
     parseQuasiQuote : Parser LispVal
-    parseQuasiQuote = do
-      _ <- char '`'
-      x <- parseExpr
-      pure $ LispList [LispAtom "quasiquote", x]
+    parseQuasiQuote = 
+        do char '`'
+           x <- parseExpr
+           pure $ LispList [LispAtom "quasiquote", x]
 
     parseUnquote : Parser LispVal
-    parseUnquote = do
-      _ <- try (char ',')
-      x <- parseExpr
-      pure $ LispList [LispAtom "unquote", x]
+    parseUnquote = 
+        do try (char ',')
+           x <- parseExpr
+           pure $ LispList [LispAtom "unquote", x]
 
     parseUnquoteSplicing : Parser LispVal
-    parseUnquoteSplicing = do
-      _ <- try (string ",@")
-      x <- parseExpr
-      pure $ LispList [LispAtom "unquote-splicing", x]
+    parseUnquoteSplicing = 
+        do try (string ",@")
+           x <- parseExpr
+           pure $ LispList [LispAtom "unquote-splicing", x]
 
     --------------
     -- Lists
     --------------
     parseRawList : Parser (List LispVal)
-    parseRawList = do
-        _ <- skipMany spaces
-        list <- sepBy parseExpr spaces
-        _ <- skipMany spaces
-        pure list
+    parseRawList = 
+        do skipMany spaces
+           list <- sepBy parseExpr spaces
+           skipMany spaces
+           pure list
 
     parseList : Parser LispVal
     parseList = do
@@ -170,16 +166,38 @@ mutual
         pure $ LispList rawList
 
     parseLists : Parser LispVal
-    parseLists = bracketed (parseDottedList <|> parseList)
+    parseLists = bracketed (parseTwoDot <|> parseDottedList <|> parseList)
+
+    parseTwoDot : Parser LispVal
+    parseTwoDot = do
+        skipMany spaces
+        h <- endBy parseExpr spaces
+        char '.'
+        spaces
+        m <- parseExpr
+        spaces
+        char '.'
+        spaces
+        t <- sepBy parseExpr spaces
+        skipMany spaces
+        case (h, m, t) of
+            ([], _, _) => failure $ "Illegal use of `.`"
+            (_, _, []) => failure $ "Illegal use of `.`"
+            (xs, _, ys) => pure $ LispList (m :: h ++ t)
+            _ => failure $ "Illegal use of `.`"
 
     parseDottedList : Parser LispVal
     parseDottedList = do
         skipMany spaces
         h <- endBy parseExpr spaces
-        _ <- char '.' >> spaces
+        char '.'
+        spaces
         t <- parseExpr
         skipMany spaces
-        pure $ LispDottedList h t
+        case t of
+            LispDottedList xs x => pure $ LispDottedList (h ++ xs) x
+            LispList xs => pure $ LispList (h ++ xs)
+            _ => pure $ LispDottedList h t
 
     parseExpr : Parser LispVal
     parseExpr =
