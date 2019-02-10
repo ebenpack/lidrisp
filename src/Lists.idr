@@ -41,7 +41,8 @@ isPair _ = pure $ LispBool False
 empty : PrimitiveLispFunc
 empty [LispList []] = pure $ LispBool True
 empty [LispList _] = pure $ LispBool False
-empty _ = Left $ Default "Type error: `empty` called on non-list"
+empty [args] = Left $ TypeMismatch "list" args
+empty args = Left $ NumArgs (MinMax 1 1) (cast $ length args) args
 
 accessors : List (String, PrimitiveLispFunc)
 accessors =
@@ -67,6 +68,46 @@ accessors =
 list : PrimitiveLispFunc
 list xs = pure $ LispList xs
 
+isList : PrimitiveLispFunc
+isList [LispList x] = pure $ LispBool True
+isList _ = pure $ LispBool False
+
+listLength : PrimitiveLispFunc
+listLength [LispList xs] = pure $ LispInteger (cast $ length xs)
+listLength [args] = Left $ TypeMismatch "list" args
+listLength args = Left $ NumArgs (MinMax 1 1) (cast $ length args) args
+
+listAppend : PrimitiveLispFunc
+listAppend [LispList xs, LispList ys] = pure $ LispList (xs++ ys)
+listAppend xs = helper [] xs 
+  where
+    helper : List LispVal -> PrimitiveLispFunc
+    helper acc [] = pure $ LispList acc
+    helper acc [LispDottedList ls v] = pure $ LispDottedList (acc ++ ls) v
+    helper [] [v] = pure $ v
+    helper acc [v] = pure $ LispDottedList acc v
+    helper acc ((LispList xs)::rest) = helper (acc ++ xs) rest
+    helper _ (x::xs) = Left $ TypeMismatch "list" x
+    helper _ _ = Left $ Default "Unknown error in append"
+
+listReverse : PrimitiveLispFunc
+listReverse [] = Left $ NumArgs (MinMax 1 1) 0 []
+listReverse [LispList xs] = pure $ LispList (reverse xs)
+listReverse [arg] = Left $ TypeMismatch "list" arg
+listReverse args = Left $ NumArgs (MinMax 1 1) (cast $ length args) args
+
+listMember : PrimitiveLispFunc
+listMember [needle, LispList xs] = helper xs
+    where
+      helper : PrimitiveLispFunc
+      helper [] = pure $ LispBool False
+      helper (x::xs) = 
+        if x == needle 
+          then pure $ LispList (x::xs)
+          else helper xs
+listMember [_, arg] = Left $ TypeMismatch "list" arg
+listMember args = Left $ NumArgs (MinMax 1 1) (cast $ length args) args
+
 listPrimitives : List (String, PrimitiveLispFunc)
 listPrimitives =
   [ ("pair?", isPair)
@@ -75,5 +116,10 @@ listPrimitives =
   , ("cons", cons)
   , ("empty?", empty)
   , ("list", list)
+  , ("list?", isList)
+  , ("length", listLength)
+  , ("append", listAppend)
+  , ("reverse", listReverse)
+  , ("member", listMember)
   ] ++
   accessors
