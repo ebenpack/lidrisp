@@ -329,6 +329,20 @@ mutual
     --     [a, b, c] ->
     --       throw $ TypeMismatch "vector, integer, integer" $ List [a, b, c]
     --     a -> throw $ NumArgs (MinMax 3 3) (length args) a
+    eval {m} envRef (LispList [LispAtom "apply", function, args]) =
+        do
+            -- (LispList (LispAtom "letrec"::LispList pairs::body))
+            s <- showEnv envRef
+            func <- eval envRef function
+            argVals <- evalArgs envRef [args]
+            unpacked <- unpackArgs argVals
+            results <- apply' func unpacked
+            pure $ results
+        where
+            unpackArgs : List LispVal -> ST m (List LispVal) []
+            unpackArgs [LispList xs] = pure xs
+            unpackArgs [arg] = throw $ TypeMismatch "list" arg
+            unpackArgs args = throw $ NumArgs (MinMax 2 2) (cast $ length args) args
     eval envRef (LispList (function::args)) = do
         s <- showEnv envRef
         func <- eval envRef function
