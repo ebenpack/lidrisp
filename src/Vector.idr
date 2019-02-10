@@ -35,7 +35,7 @@ vectorRef args =
     [v] => Left $ TypeMismatch "Vector" v
     a => Left $ NumArgs (MinMax 2 2) (cast $ length args) a
 
-vectorPrimitives : List (String, (PrimitiveLispFunc))
+vectorPrimitives : List (String, PrimitiveLispFunc)
 vectorPrimitives =
     [ ("vector?", isVector)
     , ("vector-length", vectorLength)

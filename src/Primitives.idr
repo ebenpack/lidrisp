@@ -9,7 +9,9 @@ import Lists
 import Numbers
 import Strings
 import Bools
+import Symbols
 import Vector
+import Procedures
 import Data.Complex
 
 %access public export
@@ -17,10 +19,6 @@ import Data.Complex
 --------------
 -- Primitives
 --------------
-
-isSymbol : PrimitiveLispFunc
-isSymbol [LispAtom _] = pure $ LispBool True
-isSymbol _ = pure $ LispBool False
 
 isChar : PrimitiveLispFunc
 isChar [LispCharacter _] = pure $ LispBool False
@@ -33,6 +31,7 @@ eqv [(LispFloat arg1), (LispFloat arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispRational arg1), (LispRational arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispComplex arg1), (LispComplex arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispString arg1), (LispString arg2)] = pure $ LispBool $ arg1 == arg2
+eqv [(LispCharacter arg1), (LispCharacter arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispAtom arg1), (LispAtom arg2)] = pure $ LispBool $ arg1 == arg2
 eqv [(LispDottedList xs x), (LispDottedList ys y)] = eqv [LispList $ xs ++ [x], LispList $ ys ++ [y]]
 eqv [(LispList arg1), (LispList arg2)] =
@@ -97,8 +96,9 @@ primitives =
   numPrimitives ++
   strPrimitives ++
   boolPrimitives ++
-  [ ("symbol?", isSymbol)
-  , ("char?", isChar)
+  symbolPrimitives ++
+  procedurePrimitives ++
+  [ ("char?", isChar)
   , ("eq?", eqv)
   , ("eqv?", eqv)
   , ("equal?", eqv)
