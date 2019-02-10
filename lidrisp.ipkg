@@ -17,8 +17,10 @@ modules = Async
         , ParseNumber
         , ParserCombinator
         , Primitives
+        , Procedures
         , Ratio
         , Repl
         , Strings
+        , Symbols
         , Util
         , Vector
