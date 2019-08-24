@@ -10,28 +10,8 @@ import DataTypes
 import Environment
 import Eval
 import Repl
-import AsyncJS_IO
-import JSError
 
 %access public export
-
-toPtr : (JSError -> JS_IO ()) -> (Ptr -> JS_IO ())
-toPtr errorCb = (\e => errorCb $ MkJSError e)
-
-replRead' : (JSError -> JS_IO ()) -> (String -> JS_IO ()) -> JS_IO ()
-replRead' err success =
-    -- For now, it will be the responsibility of the callerto define this + print
-    foreign FFI_JS "window.lidrisp.read(%0, %1)"
-        (JsFn (Ptr -> JS_IO ()) -> JsFn (String -> JS_IO ()) -> JS_IO ())
-        (MkJsFn $ toPtr err) (MkJsFn success)
-
-replRead : AsyncJS_IO String
-replRead = MkAsync $ \e => \f => replRead' (\x => e x) (\s => f s)
-
-replPrint : String -> JS_IO ()
-replPrint str =
-    foreign FFI_JS "window.lidrisp.print(%0)"
-        (String -> JS_IO ()) str
 
 notVoid : LispVal -> Bool
 notVoid LispVoid = False
@@ -45,12 +25,11 @@ replEval s = ioe_run (run (do envRef <- primitiveBindings
                      (\err => pure $ show err)
                      (\ok  => pure ok)
 
-replLoop : AsyncJS_IO ()
-replLoop = do
-  s <- replRead
-  out <- liftJS_IO $ replEval s
-  liftJS_IO $ replPrint out
-  replLoop
+run : String -> JS_IO String
+run s = do
+    out <- replEval s
+    pure out
 
-main : JS_IO ()
-main = runAsync replLoop
+expList : FFI_Export FFI_JS "" []
+expList = Fun run "run" $
+          End
