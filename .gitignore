@@ -3,3 +3,5 @@
 *.o
 bundle.js
 test.html
+dist/
+node_modules/
