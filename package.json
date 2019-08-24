@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "browserify dist/index.js -s lidrisp -o index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -15,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/ebenpack/lidrisp/issues"
   },
-  "homepage": "https://github.com/ebenpack/lidrisp#readme"
+  "homepage": "https://github.com/ebenpack/lidrisp#readme",
+  "devDependencies": {
+    "browserify": "^16.5.0"
+  }
 }
