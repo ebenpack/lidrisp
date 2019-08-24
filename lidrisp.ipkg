@@ -4,13 +4,10 @@ sourcedir=src
 
 opts="-p contrib"
 
-modules = Async
-        , AsyncJS_IO
-        , Bools
+modules = Bools
         , DataTypes
         , Environment
         , Eval
-        , JSError
         , Lists
         , Numbers
         , Parse
