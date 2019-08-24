@@ -115,6 +115,7 @@ listPrimitives =
   , ("cdr", cdr)
   , ("cons", cons)
   , ("empty?", empty)
+  , ("null?", empty)
   , ("list", list)
   , ("list?", isList)
   , ("length", listLength)
