@@ -13,4 +13,4 @@ etc.
 
     # Build
     > idris --build lidrisp.ipkg
-    > idris -p contrib -i src --codegen javascript Main.idr -o bundle.js
+    > idris -p contrib -i src --codegen node --interface  Main.idr -o dist/index.js
