@@ -27,6 +27,11 @@ replEval s = ioe_run (run (do envRef <- primitiveBindings
 
 run : String -> JS_IO String
 run s = do
+    {-#
+    Right identity dictates this can be simplified, but
+    unfortunately that is not the case right now.
+    https://github.com/idris-lang/Idris-dev/issues/4656
+    #-}
     out <- replEval s
     pure out
 
