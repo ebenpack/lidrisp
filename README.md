@@ -10,7 +10,3 @@ Very much based on Write Yourself a Scheme in 48 Hours, with a few notable
 differences. E.g. more complete-ish number parsing and fuller numeric tower,
 let/let*/letrec expressions, a slightly more sophisticated environment model,
 etc.
-
-    # Build
-    > idris --build lidrisp.ipkg
-    > idris -p contrib -i src --codegen node --interface  Main.idr -o dist/index.js
