@@ -28,12 +28,11 @@ import Eval
 readOrThrow : Context m => Parser a -> String -> ST m a []
 readOrThrow parser input =
   case parse parser input of
-    ParseError (err, _) => throw $ ParseError err
-    ParseSuccess [(val, _)] => pure val
-    _ => throw $ Default "Read error"
+    ParseError err _ => throw $ ParseError err
+    ParseSuccess val _ => pure val
 
 readExprList : Context m => String -> ST m (List LispVal) []
-readExprList = readOrThrow $ (skipMany space) >> (endBy parseExpr (skipMany space))
+readExprList = readOrThrow $ (skipMany space) *> (endBy parseExpr (skipMany space))
 
 evalExprList : Context m => EnvRef LispVal -> String -> ST m (List LispVal) []
 evalExprList envRef expr =

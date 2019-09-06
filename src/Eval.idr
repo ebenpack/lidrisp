@@ -10,8 +10,6 @@ import Ratio
 import Strings
 import Vector
 import Data.Complex
-import Parse
-import ParserCombinator
 import Data.Complex
 import Primitives
 import Data.SortedMap

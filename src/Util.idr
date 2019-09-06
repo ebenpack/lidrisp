@@ -15,11 +15,6 @@ jscall : (fname : String) -> (ty : Type) ->
           {auto fty : FTy FFI_JS [] ty} -> ty
 jscall fname ty = foreign FFI_JS fname ty
 
--- Can't override fixity... fixity defined in Prelude.Interfaces,
--- but operator apparantly otherwise unused
-(>>) : Monad m => m a -> m b -> m b
-m >> k = m >>= \_ => k
-
 infixl 1 =<<
 (=<<) : Monad m => (a -> m b) -> m a -> m b
 m =<< k = k >>= m

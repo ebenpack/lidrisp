@@ -1,6 +1,5 @@
 module DataTypes
 
-import ParserCombinator
 import Ratio
 import Data.Complex
 import Control.ST.Exception

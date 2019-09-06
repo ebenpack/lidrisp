@@ -24,7 +24,6 @@ bracketed p = do
     matchBracket open
     pure v
 
-
 --------------
 -- String
 --------------
@@ -64,27 +63,25 @@ parseAtom = do
 -- Char
 --------------
 parseCharacter : Parser LispVal
-parseCharacter
-     -- TODO: Meta-, bucky-bit stuff
- = do string "#\\"
-      c <- many1 letter
-      let s = pack (map Prelude.Chars.toLower c)
-      pure $
+parseCharacter = do
+    -- TODO: Meta-, bucky-bit stuff
+    string "#\\"
+    c <- many1 letter
+    let s = pack (map Prelude.Chars.toLower c)
+    pure $
         if length s == 1 then LispCharacter $ strHead s else
         case s of
-          "newline" => LispCharacter '\n'
-          "space" => LispCharacter ' '
-          "altmode" => LispCharacter $ chr 27
-          "backnext" => LispCharacter $ chr 31
-          "backspace" => LispCharacter $ chr 8
-          "call" => LispCharacter $ chr 26
-          "linefeed" => LispCharacter $ chr 10
-          "page" => LispCharacter $ chr 12
-          "return" => LispCharacter $ chr 13
-          "rubout" => LispCharacter $ chr 127
-          "tab" => LispCharacter $ chr 9
-
---
+            "newline" => LispCharacter '\n'
+            "space" => LispCharacter ' '
+            "altmode" => LispCharacter $ chr 27
+            "backnext" => LispCharacter $ chr 31
+            "backspace" => LispCharacter $ chr 8
+            "call" => LispCharacter $ chr 26
+            "linefeed" => LispCharacter $ chr 10
+            "page" => LispCharacter $ chr 12
+            "return" => LispCharacter $ chr 13
+            "rubout" => LispCharacter $ chr 127
+            "tab" => LispCharacter $ chr 9
 
 --------------
 -- Comment

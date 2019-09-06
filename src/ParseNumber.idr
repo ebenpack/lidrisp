@@ -20,8 +20,8 @@ converterHelper caster base xs = convert 0 xs
 
 parseIntegerHelper : (List Char -> Integer) -> Parser Char -> Parser LispVal
 parseIntegerHelper converter parser =
-  (char '-' >> (parseIntegerHelper' negate)) <|>
-  (char '+' >> (parseIntegerHelper' id)) <|>
+  (char '-' *> (parseIntegerHelper' negate)) <|>
+  (char '+' *> (parseIntegerHelper' id)) <|>
   (parseIntegerHelper' id)
   where
     parseIntegerHelper' : (Integer -> Integer) -> Parser LispVal
@@ -123,7 +123,7 @@ parseInteger =
 --------------
 parseFloatHelper : (List Char -> Integer) -> Parser Char -> Integer -> Parser LispVal
 parseFloatHelper converter parser base =
-  (char '-' >> (parseFloat' negate)) <|> (char '+' >> parseFloat' id) <|>
+  (char '-' *> (parseFloat' negate)) <|> (char '+' *> parseFloat' id) <|>
   (parseFloat' id)
   where
     helper : Integer -> Integer -> Double
@@ -161,7 +161,6 @@ parseFloatOctal = parseFloatHelper converter octDigit base
         base = 8
         converter : (List Char -> Integer)
         converter = converterHelper octConverter base
-
 
 parseFloatHex : Parser LispVal
 parseFloatHex = parseFloatHelper converter hexDigit base

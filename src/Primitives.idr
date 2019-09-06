@@ -66,12 +66,12 @@ eqv badArgList = Left $ NumArgs (MinMax 2 2) (cast $ length badArgList) badArgLi
 -- makePort _ _ = throw $ Default "makePort error"
 --
 -- closePort :: IOPrimitiveFunc
--- closePort [Port port] = liftIO $ hClose port >> (pure $ Bool True)
+-- closePort [Port port] = liftIO $ hClose port *> (pure $ Bool True)
 -- closePort _ = pure $ Bool False
 --
 -- writeProc :: IOPrimitiveFunc
 -- writeProc [obj] = writeProc [obj, Port stdout]
--- writeProc [obj, Port port] = liftIO $ hPrint port obj >> (pure $ Bool True)
+-- writeProc [obj, Port port] = liftIO $ hPrint port obj *> (pure $ Bool True)
 -- writeProc _ = throw $ Default "writeProc error"
 --
 -- readContents :: IOPrimitiveFunc
