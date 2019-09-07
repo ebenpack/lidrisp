@@ -25,14 +25,20 @@ import Eval
 -- Repl
 --------------
 
-readOrThrow : Context m => Parser a -> String -> ST m a []
+readOrThrow : (Show a, Context m) => Parser a -> String -> ST m a []
 readOrThrow parser input =
   case parse parser input of
-    ParseError err _ => throw $ ParseError err
-    ParseSuccess val _ => pure val
+    ParseError (MkError err) _ pos => throw $ LispParseError err pos
+    ParseSuccess val s pos => pure val
 
 readExprList : Context m => String -> ST m (List LispVal) []
-readExprList = readOrThrow $ (skipMany space) *> (endBy parseExpr (skipMany space))
+readExprList = readOrThrow $ (many' go) <* eof
+    where
+    go = do
+        skipMany space
+        e <- parseExpr
+        skipMany space
+        pure e
 
 evalExprList : Context m => EnvRef LispVal -> String -> ST m (List LispVal) []
 evalExprList envRef expr =

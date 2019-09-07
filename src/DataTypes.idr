@@ -5,6 +5,7 @@ import Data.Complex
 import Control.ST.Exception
 import Control.ST
 import Environment
+import ParserCombinator
 
 %access public export
 
@@ -40,7 +41,7 @@ mutual
         | BadSpecialForm String LispVal
         | NotFunction String String
         | UnboundVar String String
-        | ParseError String
+        | LispParseError String Pos
         | Default String
 
 mutual
@@ -117,7 +118,7 @@ showError (NumArgs expected found args) =
           [] => ""
           a => "\narguments:\n" ++ unwordsList a
   in error' ++ argsError
-showError (ParseError parseErr) = "Parse error at " ++ show parseErr
+showError (LispParseError parseErr pos) = "Parse error " ++ show pos
 showError (TypeMismatch expected found) =
   "Invalid type: expected " ++ expected ++ ", found " ++ (show found)
 

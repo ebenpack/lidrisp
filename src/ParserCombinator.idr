@@ -2,54 +2,83 @@ module ParserCombinator
 
 %access public export
 
-data ParseResult a = ParseError String String | ParseSuccess a String
+record Pos where
+    constructor MkPos
+    line, column : Int
+
+Show Pos where
+    show (MkPos line col) = "(line " ++ (show line) ++ ", column" ++ (show col) ++ ")"
+
+data Error = MkError String
+
+Show Error where
+    show (MkError err) = err
+
+data ParseResult a = ParseError Error String Pos | ParseSuccess a String Pos
 
 Show a => Show (ParseResult a) where
-    show (ParseError err _) = "Error: " ++ err
-    show (ParseSuccess a _) = show a
+    show (ParseError err _ pos) = "Error " ++ (show pos) ++ ": " ++ (show err)
+    show (ParseSuccess a _ _) = show a
 
 data Parser : Type -> Type where
-    MkParser : (String -> ParseResult a) -> Parser a
+    MkParser : (String -> Pos -> ParseResult a) -> Parser a
 
-parse : Parser a -> String -> ParseResult a
-parse (MkParser p) inp = p inp
+parse' : Parser a -> String -> Pos -> ParseResult a
+parse' (MkParser p) inp pos = p inp pos
 
 Functor Parser where
-    map f m1 = MkParser $ \inp =>
-        case parse m1 inp of
-            ParseError err s2 => ParseError err s2
-            ParseSuccess a rest => ParseSuccess (f a) rest
+    map f m1 = MkParser $ \inp, pos =>
+        case parse' m1 inp pos of
+            ParseError err s2 pos => ParseError err s2 pos
+            ParseSuccess a rest pos => ParseSuccess (f a) rest pos
 
 mutual
     Applicative Parser where
-        pure a = MkParser $ \inp => ParseSuccess a inp
+        pure a = MkParser $ \inp, pos => ParseSuccess a inp pos
         af <*> ax = do
             f <- af
             x <- ax
             pure (f x)
 
     Monad Parser where
-        p >>= f = MkParser $ \inp =>
-            case parse p inp of
-                ParseError err _ => ParseError err inp
-                ParseSuccess a rest => parse (f a) rest
+        p >>= f = MkParser $ \inp, pos =>
+            case parse' p inp pos of
+                ParseError err _ pos => ParseError err inp pos
+                ParseSuccess a rest pos' => parse' (f a) rest pos'
 
 failure : String -> Parser a
-failure err = MkParser $ \s => ParseError err s
+failure err = MkParser $ \inp, pos => ParseError (MkError err) inp pos
+
+-- TODO: USE THIS!
+-- TODO: RENAME PROBABLY!
+failWith : String -> Parser a -> Parser a
+failWith err p =
+    MkParser $ \inp, pos =>
+        case parse' p inp pos of
+            ParseError _ inp' pos' => ParseError (MkError err) inp' pos'
+            ok@(ParseSuccess _ _ _) => ok
+
+nextPos : Char -> Pos -> Pos
+nextPos c pos =
+    if c == '\n'
+    then record { line $= (+ 1), column $= (const 0) } pos
+    else record { line $= (const 1), column $= (+ 1) } pos
 
 item : Parser Char
 item =
-    MkParser $ \inp =>
+    MkParser $ \inp, pos =>
         case inp of
-            "" => ParseError "'Item' run on empty input" ""
-            s => ParseSuccess (strHead s) (strTail s)
+            "" => ParseError (MkError "'Item' run on empty input") "" pos
+            s =>
+                let c = (strHead s)
+                in ParseSuccess c (strTail s) (nextPos c pos)
 
 (<|>) : Parser a -> Parser a -> Parser a
 p <|> q =
-    MkParser $ \inp =>
-        case parse p inp of
-            ParseError _ _ => parse q inp
-            ParseSuccess a rest => ParseSuccess a rest
+    MkParser $ \inp, pos =>
+        case parse' p inp pos of
+            ParseError _ _ _ => parse' q inp pos
+            ParseSuccess a rest pos => ParseSuccess a rest pos
 
 mutual
     many1 : Parser a -> Parser (List a)
@@ -84,10 +113,10 @@ skipUntil end p = scan
 
 try : Parser a -> Parser a
 try p =
-    MkParser $ \s =>
-        case parse p s of
-            ParseError err _ => ParseError err s
-            ParseSuccess a rest => ParseSuccess a rest
+    MkParser $ \inp, pos =>
+        case parse' p inp pos of
+            ParseError err _ pos' => ParseError err inp pos'
+            ParseSuccess a rest pos' => ParseSuccess a rest pos'
 
 sat : (Char -> Bool) -> Parser Char
 sat p = do
@@ -108,22 +137,22 @@ char x = sat (== x)
 
 peek : Parser Char -- TODO: Make a general non-consuming combinator
 peek =
-    MkParser $ \inp =>
+    MkParser $ \inp, pos =>
         case inp of
-            "" => ParseError "'Item' run on empty input" ""
-            s => ParseSuccess (strHead s) inp
+            "" => ParseError (MkError "'Item' run on empty input") "" pos
+            s => ParseSuccess (strHead s) inp pos
 
 oneOf : String -> Parser Char
 oneOf "" = item *> failure "Empty input to 'OneOf'"
-oneOf s = try (char (strHead s)) <|> oneOf (strTail s)
+oneOf s = (try (char (strHead s))) <|> oneOf (strTail s)
 
 noneOf : String -> Parser Char
 noneOf s =
     do
-        c <- peek
+        c <- item
         go c s
     where
-        go c "" = item
+        go c "" = pure c
         go c s = do
             if c == strHead s
             then failure $ "Rejection condition not satisfied for: `" ++ (singleton c) ++ "`"
@@ -134,7 +163,7 @@ sepBy p sep = separated <|> pure []
     where
         separated = do
             x <- p
-            xs <- many' (sep >>= \_ => p)
+            xs <- many' (sep *> p)
             pure (x :: xs)
 
 endBy : Parser a -> Parser b -> Parser (List a)
@@ -180,3 +209,12 @@ string s = do
     char (strHead s)
     string (strTail s)
     pure s
+
+eof : Parser ()
+eof = MkParser $ \inp, pos =>
+    case inp of
+        "" => ParseSuccess () inp pos
+        s => ParseError (MkError "Not end of file") s (nextPos (strHead s) pos)
+
+parse : Parser a -> String -> ParseResult a
+parse p inp = parse' p inp (MkPos 0 0)
