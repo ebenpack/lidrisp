@@ -7,7 +7,7 @@ record Pos where
     line, column : Int
 
 Show Pos where
-    show (MkPos line col) = "(line " ++ (show line) ++ ", column" ++ (show col) ++ ")"
+    show (MkPos line col) = "(line " ++ (show line) ++ ", column " ++ (show col) ++ ")"
 
 data Error = MkError String
 
@@ -43,7 +43,7 @@ mutual
     Monad Parser where
         p >>= f = MkParser $ \inp, pos =>
             case parse' p inp pos of
-                ParseError err _ pos => ParseError err inp pos
+                ParseError err _ pos' => ParseError err inp pos'
                 ParseSuccess a rest pos' => parse' (f a) rest pos'
 
 failure : String -> Parser a
@@ -62,7 +62,7 @@ nextPos : Char -> Pos -> Pos
 nextPos c pos =
     if c == '\n'
     then record { line $= (+ 1), column $= (const 0) } pos
-    else record { line $= (const 1), column $= (+ 1) } pos
+    else record { column $= (+ 1) } pos
 
 item : Parser Char
 item =
@@ -78,7 +78,7 @@ p <|> q =
     MkParser $ \inp, pos =>
         case parse' p inp pos of
             ParseError _ _ _ => parse' q inp pos
-            ParseSuccess a rest pos => ParseSuccess a rest pos
+            ParseSuccess a rest pos' => ParseSuccess a rest pos'
 
 mutual
     many1 : Parser a -> Parser (List a)
@@ -134,13 +134,6 @@ rej p = do
 
 char : Char -> Parser Char
 char x = sat (== x)
-
-peek : Parser Char -- TODO: Make a general non-consuming combinator
-peek =
-    MkParser $ \inp, pos =>
-        case inp of
-            "" => ParseError (MkError "'Item' run on empty input") "" pos
-            s => ParseSuccess (strHead s) inp pos
 
 oneOf : String -> Parser Char
 oneOf "" = item *> failure "Empty input to 'OneOf'"
