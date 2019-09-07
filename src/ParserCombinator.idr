@@ -210,4 +210,4 @@ eof = MkParser $ \inp, pos =>
         s => ParseError (MkError "Not end of file") s (nextPos (strHead s) pos)
 
 parse : Parser a -> String -> ParseResult a
-parse p inp = parse' p inp (MkPos 0 0)
+parse p inp = parse' p inp (MkPos 1 0)
