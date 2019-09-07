@@ -9,7 +9,7 @@
   },
   "devDependencies": {},
   "scripts": {
-    "build": "browserify index.js -s lidrisp -o dist/out.js",
+    "build": "browserify dist/index.js -s lidrisp -o dist/out.js",
     "minify": "google-closure-compiler --js=dist/out.js --js_output_file=dist/out.min.js",
     "build-prod": "npm run build && npm run minify"
   },
